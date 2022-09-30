@@ -21,3 +21,7 @@ relays the data to other nodes, but uses the primary EL to return responses.
 
 Factor can handle jwt and custom headers. See `conf.toml.sample` for an idea of how to configure it. 
 
+
+## Docker 
+
+Should be available at [docker hub](https://hub.docker.com/r/holiman/factor)

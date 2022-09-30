@@ -13,7 +13,7 @@ COPY go.mod /factor/
 COPY go.sum /factor/
 RUN cd /factor && go mod download
 
-ADD cmd/ lib/ /factor/
+ADD . /factor
 RUN cd /factor && go build ./cmd/factor
 
 # Pull binary into a second stage deploy alpine container
