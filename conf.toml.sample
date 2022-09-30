@@ -1,0 +1,29 @@
+[[el_clients]]
+  name = "bench01"
+  address = "http://client1.myclients.io:8545"
+  jwt_secret = "0x11111111111111111111111111111111111111111111111111111111111111"
+  
+[[el_clients]]
+  name = "bench02"
+  address = "http://client2.myclients.io:8545"
+  jwt_secret = "0x22222222222222222222222222222222222222222222222222222222222222"
+  
+[[el_clients]]
+  name = "bench03"
+  address = "http://client3.myclients.io:8545"
+  jwt_secret = "0x22222222222222222222222222222222222222222222222222222222222222"
+  
+[[el_clients]]
+  name = "bench04"
+  address = "http://client4.myclients.io:8545"
+  jwt_secret = "0x33333333333333333333333333333333333333333333333333333333333333"
+  CF-Access-Client-Id = "secret.id.access.for.el"
+  CF-Access-Client-Secret = "secret.secret.for.el"
+
+[cl_client]
+name = "prysm"
+address = "https://prysm.mainnet.myclients.io"
+
+[cl_client.headers]
+CF-Access-Client-Id = "secret.id.access"
+CF-Access-Client-Secret = "secret.secret"
