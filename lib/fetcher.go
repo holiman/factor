@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/beacon"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -103,13 +104,16 @@ func (f *fetcher) fetchLoop() {
 
 func (f *fetcher) deliverLoop() {
 	defer f.wg.Done()
+	var headHash common.Hash
 	for {
 		select {
 		case head := <-f.headCh:
+			headHash = head.BlockHash
 			f.sink.NewPayloadV1(head)
 		case finalized := <-f.finalCh:
 			f.sink.ForkchoiceUpdatedV1(beacon.ForkchoiceStateV1{
 				FinalizedBlockHash: finalized.BlockHash,
+				HeadBlockHash:      headHash,
 			}, nil)
 		case <-f.closeCh:
 			return
