@@ -18,6 +18,7 @@ package lib
 
 import (
 	"encoding/json"
+	"github.com/ethereum/go-ethereum/common"
 	"os"
 	"testing"
 )
@@ -32,7 +33,8 @@ func TestParseHead(t *testing.T) {
 		t.Fatal(err)
 	}
 	payload := block.Data.Message.Body.ExecutionPayload
-	t.Logf("payload parent: %x\n", payload.ParentHash)
 	payload2 := payload.toExecutableDataV1()
-	t.Logf("%v", payload2)
+	if have, want := payload2.BlockHash, common.HexToHash("0x1873367cf106a66be0fc94c2165aeebab012dc7e896911b2c0ccfc4eb947e2be"); have != want {
+		t.Fatalf("have %#x, want %#x", have, want)
+	}
 }

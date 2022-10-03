@@ -77,18 +77,14 @@ type beaconBlockMarshaling struct {
 }
 
 // cat head.resp | jq ".data .message .body .execution_payload"
-
 type bellatrixBlock struct {
-	Data b1
-}
-type b1 struct {
-	Message b2
-}
-type b2 struct {
-	Body b3
-}
-type b3 struct {
-	ExecutionPayload beaconBlock `json:"execution_payload"'`
+	Data struct {
+		Message struct {
+			Body struct {
+				ExecutionPayload beaconBlock `json:"execution_payload"'`
+			} `json:"body"`
+		} `json:"message"`
+	} `json:"data"`
 }
 
 func (b beaconBlock) toExecutableDataV1() beacon.ExecutableDataV1 {
