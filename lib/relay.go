@@ -21,10 +21,15 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/beacon"
 	"github.com/ethereum/go-ethereum/log"
+	"sync"
 )
 
 type relayPI struct {
 	els []ElApi
+}
+
+func (r *relayPI) Name() string {
+	return "relayer"
 }
 
 func NewRelayPI(config []ELConfig) (*relayPI, error) {
@@ -40,45 +45,60 @@ func NewRelayPI(config []ELConfig) (*relayPI, error) {
 }
 
 func (r *relayPI) ForkchoiceUpdatedV1(update beacon.ForkchoiceStateV1, payloadAttributes *beacon.PayloadAttributesV1) (beacon.ForkChoiceResponse, error) {
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	for _, el := range r.els[1:] {
+		wg.Add(1)
 		go func(el ElApi) {
+			defer wg.Done()
 			if _, err := el.ForkchoiceUpdatedV1(update, payloadAttributes); err != nil {
-				log.Info("Remote call error", "method", "FCUV1", "err", err)
+				log.Info("Remote call error", "method", "FCUV1", "el", el.Name(), "err", err)
 			}
 		}(el)
 	}
 	a, err := r.els[0].ForkchoiceUpdatedV1(update, payloadAttributes)
 	if err != nil {
-		log.Info("Remote call error", "method", "FCUV1", "err", err)
+		log.Info("Remote call error", "method", "FCUV1", "el", r.els[0].Name(), "err", err)
 	}
 	return a, err
 }
 
 func (r *relayPI) NewPayloadV1(params beacon.ExecutableDataV1) (beacon.PayloadStatusV1, error) {
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	for _, el := range r.els[1:] {
+		wg.Add(1)
 		go func(el ElApi) {
+			defer wg.Done()
 			if _, err := el.NewPayloadV1(params); err != nil {
-				log.Info("Remote call error", "method", "NPV1", "err", err)
+				log.Info("Remote call error", "method", "NPV1", "el", el.Name(), "err", err)
 			}
 		}(el)
 	}
 	a, err := r.els[0].NewPayloadV1(params)
 	if err != nil {
-		log.Info("Remote call error", "method", "NPV1", "err", err)
+		log.Info("Remote call error", "method", "NPV1", "el", r.els[0].Name(), "err", err)
 	}
 	return a, err
 }
 
 func (r *relayPI) ExchangeTransitionConfigurationV1(config beacon.TransitionConfigurationV1) (*beacon.TransitionConfigurationV1, error) {
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	for _, el := range r.els[1:] {
+		wg.Add(1)
 		go func(el ElApi) {
+			defer wg.Done()
 			if _, err := el.ExchangeTransitionConfigurationV1(config); err != nil {
-				log.Info("Remote call error", "method", "ETCV1", "err", err)
+				log.Info("Remote call error", "method", "ETCV1", "el", el.Name(), "err", err)
 			}
-
 		}(el)
 	}
-	return r.els[0].ExchangeTransitionConfigurationV1(config)
+	a, err := r.els[0].ExchangeTransitionConfigurationV1(config)
+	if err != nil {
+		log.Info("Remote call error", "method", "ETCV1", "el", r.els[0].Name(), "err", err)
+	}
+	return a, err
 }
 
 func (r *relayPI) GetPayloadV1(payloadID beacon.PayloadID) (*beacon.ExecutableDataV1, error) {

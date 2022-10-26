@@ -129,3 +129,7 @@ func (r *remoteEL) ExchangeTransitionConfigurationV1(config beacon.TransitionCon
 func (r *remoteEL) GetPayloadV1(payloadID beacon.PayloadID) (*beacon.ExecutableDataV1, error) {
 	return nil, errors.New("GetPayloadV1 not supported")
 }
+
+func (r *remoteEL) Name() string {
+	return r.name
+}

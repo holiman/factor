@@ -27,4 +27,6 @@ type ElApi interface {
 	GetPayloadV1(payloadID beacon.PayloadID) (*beacon.ExecutableDataV1, error)
 	// NewPayloadV1 creates an Eth1 block, inserts it in the chain, and returns the status of the chain.
 	NewPayloadV1(params beacon.ExecutableDataV1) (beacon.PayloadStatusV1, error)
+	// Name for the EL, as per configuration.
+	Name() string
 }
