@@ -31,6 +31,7 @@ import (
 
 const errBackoffCount = 10
 const backOffPeriod = time.Minute
+const contextDeadlind = 6 * time.Second
 
 // remoteEL represents a remote Execution Layer client.
 type remoteEL struct {
@@ -64,7 +65,7 @@ func newRemoteEL(addr, name string, jwtSecret string, customHeaders map[string]s
 func (r *remoteEL) ForkchoiceUpdatedV1(update beacon.ForkchoiceStateV1, payloadAttributes *beacon.PayloadAttributesV1) (beacon.ForkChoiceResponse, error) {
 	var raw json.RawMessage
 	var resp beacon.ForkChoiceResponse
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(2*time.Second))
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(contextDeadlind))
 	err := r.cli.CallContext(ctx, &raw, "engine_forkchoiceUpdatedV1", update, payloadAttributes)
 	if err != nil {
 		r.errCount++
@@ -91,7 +92,7 @@ func (r *remoteEL) NewPayloadV1(params beacon.ExecutableDataV1) (beacon.PayloadS
 		r.errCount = 0
 		// back off a bit
 	}
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(2*time.Second))
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(contextDeadlind))
 	err := r.cli.CallContext(ctx, &raw, "engine_newPayloadV1", params)
 	if err != nil {
 		r.errCount++
