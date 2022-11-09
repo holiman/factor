@@ -110,6 +110,9 @@ func (f *fetcher) deliverLoop() {
 		case head := <-f.headCh:
 			headHash = head.BlockHash
 			f.sink.NewPayloadV1(head)
+			f.sink.ForkchoiceUpdatedV1(beacon.ForkchoiceStateV1{
+				HeadBlockHash: headHash,
+			}, nil)
 		case finalized := <-f.finalCh:
 			f.sink.ForkchoiceUpdatedV1(beacon.ForkchoiceStateV1{
 				FinalizedBlockHash: finalized.BlockHash,
