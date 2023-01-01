@@ -64,15 +64,22 @@ func (f *fetcher) Stop() {
 // from the CL node, and emits them over the finalCh and headCh.
 func (f *fetcher) fetchLoop() {
 	defer f.wg.Done()
-	timer := time.NewTimer(10 * time.Second)
-	var final, head beacon.ExecutableDataV1
-
+	var (
+		timer = time.NewTimer(10 * time.Second)
+		final beacon.ExecutableDataV1
+		head  beacon.ExecutableDataV1
+	)
+	defer timer.Stop()
 	for {
-		newFinal, err := f.cl.GetFinalizedBlock()
-		if err != nil {
+		if newFinal, err := f.cl.GetFinalizedBlock(); err != nil {
 			log.Error("Failed fetching finalized", "err", err)
-		}
-		if newFinal.Number != 0 && newFinal.Number != final.Number {
+			timer.Reset(30 * time.Second)
+			select {
+			case <-timer.C:
+			case <-f.closeCh:
+				return
+			}
+		} else if newFinal.Number != 0 && newFinal.Number != final.Number {
 			final = newFinal // New finalized
 			log.Info("New final block", "number", final.Number, "hash", final.BlockHash)
 			select {
@@ -80,12 +87,15 @@ func (f *fetcher) fetchLoop() {
 			default:
 			}
 		}
-
-		newHead, err := f.cl.GetHeadBlock()
-		if err != nil {
+		if newHead, err := f.cl.GetHeadBlock(); err != nil {
 			log.Error("Failed fetching head", "err", err)
-		}
-		if newHead.Number != 0 && newHead.Number != head.Number {
+			timer.Reset(30 * time.Second)
+			select {
+			case <-timer.C:
+			case <-f.closeCh:
+				return
+			}
+		} else if newHead.Number != 0 && newHead.Number != head.Number {
 			head = newHead // New head
 			log.Info("New head block", "number", head.Number, "hash", head.BlockHash)
 			select {
@@ -93,9 +103,9 @@ func (f *fetcher) fetchLoop() {
 			default:
 			}
 		}
+		timer.Reset(10 * time.Second)
 		select {
 		case <-timer.C:
-			timer.Reset(10 + time.Second)
 		case <-f.closeCh:
 			return
 		}

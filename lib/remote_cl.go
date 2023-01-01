@@ -72,9 +72,7 @@ func (r *remoteCL) GetBlock(specifier string) (resp beacon.ExecutableDataV1, err
 	} else if body, err := ioutil.ReadAll(res.Body); err != nil {
 		return resp, err
 	} else if err := json.Unmarshal(body, &internal); err != nil {
-		fmt.Printf("%v\n", string(body))
-
-		return resp, err
+		return resp, fmt.Errorf("response code %v, err: %w", res.StatusCode, err)
 	}
 	return internal.Data.Message.Body.ExecutionPayload.toExecutableDataV1(), nil
 }
