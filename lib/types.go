@@ -19,10 +19,11 @@ package lib
 import (
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/beacon"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type CLConfig struct {
@@ -48,20 +49,21 @@ type Config struct {
 // beaconBlock is _almost_ a beacon.ExecutableDataV1, but they have defined the
 // json a bit differently.
 type beaconBlock struct {
-	ParentHash    common.Hash    `json:"parent_hash"    gencodec:"required"`
-	FeeRecipient  common.Address `json:"fee_recipient"  gencodec:"required"`
-	StateRoot     common.Hash    `json:"state_root"     gencodec:"required"`
-	ReceiptsRoot  common.Hash    `json:"receipts_root"  gencodec:"required"`
-	LogsBloom     []byte         `json:"logs_bloom"     gencodec:"required"`
-	Random        common.Hash    `json:"prev_randao"    gencodec:"required"`
-	Number        uint64         `json:"block_number"   gencodec:"required"`
-	GasLimit      uint64         `json:"gas_limit"      gencodec:"required"`
-	GasUsed       uint64         `json:"gas_used"       gencodec:"required"`
-	Timestamp     uint64         `json:"timestamp"     gencodec:"required"`
-	ExtraData     []byte         `json:"extra_data"     gencodec:"required"`
-	BaseFeePerGas *big.Int       `json:"base_fee_per_gas" gencodec:"required"`
-	BlockHash     common.Hash    `json:"block_hash"     gencodec:"required"`
-	Transactions  [][]byte       `json:"transactions"  gencodec:"required"`
+	ParentHash    common.Hash         `json:"parent_hash"    gencodec:"required"`
+	FeeRecipient  common.Address      `json:"fee_recipient"  gencodec:"required"`
+	StateRoot     common.Hash         `json:"state_root"     gencodec:"required"`
+	ReceiptsRoot  common.Hash         `json:"receipts_root"  gencodec:"required"`
+	LogsBloom     []byte              `json:"logs_bloom"     gencodec:"required"`
+	Random        common.Hash         `json:"prev_randao"    gencodec:"required"`
+	Number        uint64              `json:"block_number"   gencodec:"required"`
+	GasLimit      uint64              `json:"gas_limit"      gencodec:"required"`
+	GasUsed       uint64              `json:"gas_used"       gencodec:"required"`
+	Timestamp     uint64              `json:"timestamp"     gencodec:"required"`
+	ExtraData     []byte              `json:"extra_data"     gencodec:"required"`
+	BaseFeePerGas *big.Int            `json:"base_fee_per_gas" gencodec:"required"`
+	BlockHash     common.Hash         `json:"block_hash"     gencodec:"required"`
+	Transactions  [][]byte            `json:"transactions"  gencodec:"required"`
+	Withdrawals   []*types.Withdrawal `json:"withdrawals" gencodec:"optional"`
 }
 
 // JSON type overrides for executableData.
@@ -87,8 +89,9 @@ type bellatrixBlock struct {
 	} `json:"data"`
 }
 
-func (b beaconBlock) toExecutableDataV1() beacon.ExecutableDataV1 {
-	resp := beacon.ExecutableDataV1{
+func (b beaconBlock) toExecutableDataV1() engine.ExecutableData {
+	resp := engine.ExecutableData{
+		Withdrawals:   b.Withdrawals,
 		ParentHash:    b.ParentHash,
 		FeeRecipient:  b.FeeRecipient,
 		StateRoot:     b.StateRoot,

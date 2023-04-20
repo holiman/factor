@@ -22,8 +22,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/beacon"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -62,9 +62,9 @@ func newRemoteEL(addr, name string, jwtSecret string, customHeaders map[string]s
 	}, nil
 }
 
-func (r *remoteEL) ForkchoiceUpdatedV1(update beacon.ForkchoiceStateV1, payloadAttributes *beacon.PayloadAttributesV1) (beacon.ForkChoiceResponse, error) {
+func (r *remoteEL) ForkchoiceUpdatedV1(update engine.ForkchoiceStateV1, payloadAttributes *engine.PayloadAttributes) (engine.ForkChoiceResponse, error) {
 	var raw json.RawMessage
-	var resp beacon.ForkChoiceResponse
+	var resp engine.ForkChoiceResponse
 	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(contextDeadline))
 	err := r.cli.CallContext(ctx, &raw, "engine_forkchoiceUpdatedV1", update, payloadAttributes)
 	if err != nil {
@@ -78,10 +78,10 @@ func (r *remoteEL) ForkchoiceUpdatedV1(update beacon.ForkchoiceStateV1, payloadA
 	return resp, nil
 }
 
-func (r *remoteEL) NewPayloadV1(params beacon.ExecutableDataV1) (beacon.PayloadStatusV1, error) {
+func (r *remoteEL) NewPayloadV1(params engine.ExecutableData) (engine.PayloadStatusV1, error) {
 	var (
 		raw  json.RawMessage
-		resp beacon.PayloadStatusV1
+		resp engine.PayloadStatusV1
 	)
 	if time.Now().Before(r.pauseUntil) {
 		return resp, errors.New("client paused")
@@ -105,7 +105,7 @@ func (r *remoteEL) NewPayloadV1(params beacon.ExecutableDataV1) (beacon.PayloadS
 	return resp, nil
 }
 
-func (r *remoteEL) ExchangeTransitionConfigurationV1(config beacon.TransitionConfigurationV1) (*beacon.TransitionConfigurationV1, error) {
+func (r *remoteEL) ExchangeTransitionConfigurationV1(config engine.TransitionConfigurationV1) (*engine.TransitionConfigurationV1, error) {
 	if time.Now().Before(r.pauseUntil) {
 		return nil, errors.New("client paused")
 	}
@@ -120,14 +120,14 @@ func (r *remoteEL) ExchangeTransitionConfigurationV1(config beacon.TransitionCon
 	if err != nil {
 		return nil, err
 	}
-	var resp beacon.TransitionConfigurationV1
+	var resp engine.TransitionConfigurationV1
 	if err := json.Unmarshal(raw, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
-func (r *remoteEL) GetPayloadV1(payloadID beacon.PayloadID) (*beacon.ExecutableDataV1, error) {
+func (r *remoteEL) GetPayloadV1(payloadID engine.PayloadID) (*engine.ExecutableData, error) {
 	return nil, errors.New("GetPayloadV1 not supported")
 }
 
