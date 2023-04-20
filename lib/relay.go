@@ -19,7 +19,7 @@ package lib
 import (
 	"errors"
 
-	"github.com/ethereum/go-ethereum/core/beacon"
+	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/log"
 	"sync"
 )
@@ -44,7 +44,7 @@ func NewRelayPI(config []ELConfig) (*relayPI, error) {
 	return &relayPI{els: els}, nil
 }
 
-func (r *relayPI) ForkchoiceUpdatedV1(update beacon.ForkchoiceStateV1, payloadAttributes *beacon.PayloadAttributesV1) (beacon.ForkChoiceResponse, error) {
+func (r *relayPI) ForkchoiceUpdatedV1(update engine.ForkchoiceStateV1, payloadAttributes *engine.PayloadAttributes) (engine.ForkChoiceResponse, error) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	for _, el := range r.els[1:] {
@@ -63,7 +63,7 @@ func (r *relayPI) ForkchoiceUpdatedV1(update beacon.ForkchoiceStateV1, payloadAt
 	return a, err
 }
 
-func (r *relayPI) NewPayloadV1(params beacon.ExecutableDataV1) (beacon.PayloadStatusV1, error) {
+func (r *relayPI) NewPayloadV1(params engine.ExecutableData) (engine.PayloadStatusV1, error) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	for _, el := range r.els[1:] {
@@ -82,7 +82,7 @@ func (r *relayPI) NewPayloadV1(params beacon.ExecutableDataV1) (beacon.PayloadSt
 	return a, err
 }
 
-func (r *relayPI) ExchangeTransitionConfigurationV1(config beacon.TransitionConfigurationV1) (*beacon.TransitionConfigurationV1, error) {
+func (r *relayPI) ExchangeTransitionConfigurationV1(config engine.TransitionConfigurationV1) (*engine.TransitionConfigurationV1, error) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	for _, el := range r.els[1:] {
@@ -101,6 +101,6 @@ func (r *relayPI) ExchangeTransitionConfigurationV1(config beacon.TransitionConf
 	return a, err
 }
 
-func (r *relayPI) GetPayloadV1(payloadID beacon.PayloadID) (*beacon.ExecutableDataV1, error) {
+func (r *relayPI) GetPayloadV1(payloadID engine.PayloadID) (*engine.ExecutableData, error) {
 	return nil, errors.New("GetPayloadV1 not supported")
 }

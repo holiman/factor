@@ -20,8 +20,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/beacon"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -31,8 +31,8 @@ type fetcher struct {
 	sink    ElApi
 	wg      sync.WaitGroup
 	closeCh chan bool
-	finalCh chan beacon.ExecutableDataV1
-	headCh  chan beacon.ExecutableDataV1
+	finalCh chan engine.ExecutableData
+	headCh  chan engine.ExecutableData
 }
 
 func NewFetcher(config CLConfig, sink ElApi) (*fetcher, error) {
@@ -44,8 +44,8 @@ func NewFetcher(config CLConfig, sink ElApi) (*fetcher, error) {
 		cl:      cl,
 		sink:    sink,
 		closeCh: make(chan bool),
-		finalCh: make(chan beacon.ExecutableDataV1, 10),
-		headCh:  make(chan beacon.ExecutableDataV1, 10),
+		finalCh: make(chan engine.ExecutableData, 10),
+		headCh:  make(chan engine.ExecutableData, 10),
 	}, nil
 }
 
@@ -66,8 +66,8 @@ func (f *fetcher) fetchLoop() {
 	defer f.wg.Done()
 	var (
 		timer = time.NewTimer(10 * time.Second)
-		final beacon.ExecutableDataV1
-		head  beacon.ExecutableDataV1
+		final engine.ExecutableData
+		head  engine.ExecutableData
 	)
 	defer timer.Stop()
 	for {
@@ -120,11 +120,11 @@ func (f *fetcher) deliverLoop() {
 		case head := <-f.headCh:
 			headHash = head.BlockHash
 			f.sink.NewPayloadV1(head)
-			f.sink.ForkchoiceUpdatedV1(beacon.ForkchoiceStateV1{
+			f.sink.ForkchoiceUpdatedV1(engine.ForkchoiceStateV1{
 				HeadBlockHash: headHash,
 			}, nil)
 		case finalized := <-f.finalCh:
-			f.sink.ForkchoiceUpdatedV1(beacon.ForkchoiceStateV1{
+			f.sink.ForkchoiceUpdatedV1(engine.ForkchoiceStateV1{
 				FinalizedBlockHash: finalized.BlockHash,
 				HeadBlockHash:      headHash,
 			}, nil)

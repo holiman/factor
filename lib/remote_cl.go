@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core/beacon"
+	"github.com/ethereum/go-ethereum/beacon/engine"
 )
 
 // remoteCL represents a remote CL client
@@ -44,10 +44,10 @@ func newRemoteCL(address, name string, customHeaders map[string]string) (*remote
 	}, nil
 }
 
-func (r *remoteCL) GetHeadBlock() (resp beacon.ExecutableDataV1, err error) {
+func (r *remoteCL) GetHeadBlock() (resp engine.ExecutableData, err error) {
 	return r.GetBlock("head")
 }
-func (r *remoteCL) GetFinalizedBlock() (resp beacon.ExecutableDataV1, err error) {
+func (r *remoteCL) GetFinalizedBlock() (resp engine.ExecutableData, err error) {
 	return r.GetBlock("finalized")
 }
 
@@ -55,7 +55,7 @@ func (r *remoteCL) GetFinalizedBlock() (resp beacon.ExecutableDataV1, err error)
 // - "finalized",
 // - "head",
 // - a number
-func (r *remoteCL) GetBlock(specifier string) (resp beacon.ExecutableDataV1, err error) {
+func (r *remoteCL) GetBlock(specifier string) (resp engine.ExecutableData, err error) {
 	var path = fmt.Sprintf("eth/v2/beacon/blocks/%v", specifier)
 
 	var internal bellatrixBlock

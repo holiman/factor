@@ -16,17 +16,17 @@
 
 package lib
 
-import "github.com/ethereum/go-ethereum/core/beacon"
+import "github.com/ethereum/go-ethereum/beacon/engine"
 
 type ElApi interface {
 	// ForkchoiceUpdatedV1 informs the EL about the most recent head.
-	ForkchoiceUpdatedV1(update beacon.ForkchoiceStateV1, payloadAttributes *beacon.PayloadAttributesV1) (beacon.ForkChoiceResponse, error)
+	ForkchoiceUpdatedV1(update engine.ForkchoiceStateV1, payloadAttributes *engine.PayloadAttributes) (engine.ForkChoiceResponse, error)
 	// ExchangeTransitionConfigurationV1 checks the given configuration against the configuration of the node.
-	ExchangeTransitionConfigurationV1(config beacon.TransitionConfigurationV1) (*beacon.TransitionConfigurationV1, error)
+	ExchangeTransitionConfigurationV1(config engine.TransitionConfigurationV1) (*engine.TransitionConfigurationV1, error)
 	// GetPayloadV1 returns a cached payload by id.
-	GetPayloadV1(payloadID beacon.PayloadID) (*beacon.ExecutableDataV1, error)
+	GetPayloadV1(payloadID engine.PayloadID) (*engine.ExecutableData, error)
 	// NewPayloadV1 creates an Eth1 block, inserts it in the chain, and returns the status of the chain.
-	NewPayloadV1(params beacon.ExecutableDataV1) (beacon.PayloadStatusV1, error)
+	NewPayloadV1(params engine.ExecutableData) (engine.PayloadStatusV1, error)
 	// Name for the EL, as per configuration.
 	Name() string
 }

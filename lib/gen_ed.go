@@ -31,6 +31,7 @@ func (b beaconBlock) MarshalJSON() ([]byte, error) {
 		BaseFeePerGas *math.HexOrDecimal256 `json:"base_fee_per_gas" gencodec:"required"`
 		BlockHash     common.Hash           `json:"block_hash"     gencodec:"required"`
 		Transactions  []hexutil.Bytes       `json:"transactions"  gencodec:"required"`
+		Withdrawals   []*clWithDrawal       `json:"withdrawals" gencodec:"optional"`
 	}
 	var enc beaconBlock
 	enc.ParentHash = b.ParentHash
@@ -52,6 +53,7 @@ func (b beaconBlock) MarshalJSON() ([]byte, error) {
 			enc.Transactions[k] = v
 		}
 	}
+	enc.Withdrawals = b.Withdrawals
 	return json.Marshal(&enc)
 }
 
@@ -72,6 +74,7 @@ func (b *beaconBlock) UnmarshalJSON(input []byte) error {
 		BaseFeePerGas *math.HexOrDecimal256 `json:"base_fee_per_gas" gencodec:"required"`
 		BlockHash     *common.Hash          `json:"block_hash"     gencodec:"required"`
 		Transactions  []hexutil.Bytes       `json:"transactions"  gencodec:"required"`
+		Withdrawals   []*clWithDrawal       `json:"withdrawals" gencodec:"optional"`
 	}
 	var dec beaconBlock
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -135,6 +138,10 @@ func (b *beaconBlock) UnmarshalJSON(input []byte) error {
 	b.Transactions = make([][]byte, len(dec.Transactions))
 	for k, v := range dec.Transactions {
 		b.Transactions[k] = v
+	}
+	b.Withdrawals = make([]*clWithDrawal, len(dec.Withdrawals))
+	for k, v := range dec.Withdrawals {
+		b.Withdrawals[k] = v
 	}
 	return nil
 }
