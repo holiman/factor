@@ -44,26 +44,33 @@ type Config struct {
 	ClClient  CLConfig
 }
 
+type clWithDrawal struct {
+	Index     math.HexOrDecimal64 `json:"index"`           // monotonically increasing identifier issued by consensus layer
+	Validator math.HexOrDecimal64 `json:"validator_index"` // index of validator associated with withdrawal
+	Address   common.Address      `json:"address"`         // target address for withdrawn ether
+	Amount    math.HexOrDecimal64 `json:"amount"`          // value of withdrawal in Gwei
+}
+
 //go:generate go run github.com/fjl/gencodec -type beaconBlock -field-override beaconBlockMarshaling -out gen_ed.go
 
 // beaconBlock is _almost_ a beacon.ExecutableDataV1, but they have defined the
 // json a bit differently.
 type beaconBlock struct {
-	ParentHash    common.Hash         `json:"parent_hash"    gencodec:"required"`
-	FeeRecipient  common.Address      `json:"fee_recipient"  gencodec:"required"`
-	StateRoot     common.Hash         `json:"state_root"     gencodec:"required"`
-	ReceiptsRoot  common.Hash         `json:"receipts_root"  gencodec:"required"`
-	LogsBloom     []byte              `json:"logs_bloom"     gencodec:"required"`
-	Random        common.Hash         `json:"prev_randao"    gencodec:"required"`
-	Number        uint64              `json:"block_number"   gencodec:"required"`
-	GasLimit      uint64              `json:"gas_limit"      gencodec:"required"`
-	GasUsed       uint64              `json:"gas_used"       gencodec:"required"`
-	Timestamp     uint64              `json:"timestamp"     gencodec:"required"`
-	ExtraData     []byte              `json:"extra_data"     gencodec:"required"`
-	BaseFeePerGas *big.Int            `json:"base_fee_per_gas" gencodec:"required"`
-	BlockHash     common.Hash         `json:"block_hash"     gencodec:"required"`
-	Transactions  [][]byte            `json:"transactions"  gencodec:"required"`
-	Withdrawals   []*types.Withdrawal `json:"withdrawals" gencodec:"optional"`
+	ParentHash    common.Hash     `json:"parent_hash"    gencodec:"required"`
+	FeeRecipient  common.Address  `json:"fee_recipient"  gencodec:"required"`
+	StateRoot     common.Hash     `json:"state_root"     gencodec:"required"`
+	ReceiptsRoot  common.Hash     `json:"receipts_root"  gencodec:"required"`
+	LogsBloom     []byte          `json:"logs_bloom"     gencodec:"required"`
+	Random        common.Hash     `json:"prev_randao"    gencodec:"required"`
+	Number        uint64          `json:"block_number"   gencodec:"required"`
+	GasLimit      uint64          `json:"gas_limit"      gencodec:"required"`
+	GasUsed       uint64          `json:"gas_used"       gencodec:"required"`
+	Timestamp     uint64          `json:"timestamp"     gencodec:"required"`
+	ExtraData     []byte          `json:"extra_data"     gencodec:"required"`
+	BaseFeePerGas *big.Int        `json:"base_fee_per_gas" gencodec:"required"`
+	BlockHash     common.Hash     `json:"block_hash"     gencodec:"required"`
+	Transactions  [][]byte        `json:"transactions"  gencodec:"required"`
+	Withdrawals   []*clWithDrawal `json:"withdrawals" gencodec:"optional"`
 }
 
 // JSON type overrides for executableData.
@@ -90,8 +97,20 @@ type bellatrixBlock struct {
 }
 
 func (b beaconBlock) toExecutableDataV1() engine.ExecutableData {
+	var withdrawals []*types.Withdrawal
+
+	for _, w := range b.Withdrawals {
+		ww := &types.Withdrawal{
+			Index:     uint64(w.Index),
+			Validator: uint64(w.Validator),
+			Address:   w.Address,
+			Amount:    uint64(w.Amount),
+		}
+		withdrawals = append(withdrawals, ww)
+	}
+
 	resp := engine.ExecutableData{
-		Withdrawals:   b.Withdrawals,
+		Withdrawals:   withdrawals,
 		ParentHash:    b.ParentHash,
 		FeeRecipient:  b.FeeRecipient,
 		StateRoot:     b.StateRoot,
