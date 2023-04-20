@@ -93,7 +93,7 @@ func (r *remoteEL) NewPayloadV1(params engine.ExecutableData) (engine.PayloadSta
 		// back off a bit
 	}
 	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(contextDeadline))
-	err := r.cli.CallContext(ctx, &raw, "engine_newPayloadV1", params)
+	err := r.cli.CallContext(ctx, &raw, "engine_newPayloadV2", params)
 	if err != nil {
 		r.errCount++
 		return resp, err
