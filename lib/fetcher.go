@@ -64,12 +64,14 @@ func (f *fetcher) Stop() {
 // from the CL node, and emits them over the finalCh and headCh.
 func (f *fetcher) fetchLoop() {
 	defer f.wg.Done()
+
 	var (
 		timer = time.NewTimer(10 * time.Second)
 		final engine.ExecutableData
 		head  engine.ExecutableData
 	)
 	defer timer.Stop()
+
 	for {
 		if newFinal, err := f.cl.GetFinalizedBlock(); err != nil {
 			log.Error("Failed fetching finalized", "err", err)
@@ -114,20 +116,36 @@ func (f *fetcher) fetchLoop() {
 
 func (f *fetcher) deliverLoop() {
 	defer f.wg.Done()
-	var headHash common.Hash
+
+	var (
+		lastHead      common.Hash
+		lastFinalized common.Hash
+	)
 	for {
 		select {
 		case head := <-f.headCh:
-			headHash = head.BlockHash
+			lastHead = head.BlockHash
 			f.sink.NewPayloadV1(head)
-			f.sink.ForkchoiceUpdatedV1(engine.ForkchoiceStateV1{
-				HeadBlockHash: headHash,
-			}, nil)
+
+			msg := engine.ForkchoiceStateV1{HeadBlockHash: lastHead}
+			if lastFinalized != (common.Hash{}) {
+				msg.FinalizedBlockHash = lastFinalized
+			}
+			f.sink.ForkchoiceUpdatedV1(msg, nil)
+
 		case finalized := <-f.finalCh:
+			lastFinalized = finalized.BlockHash
+
+			// Initialize the head block hash using the finalized hash
+			// in case no event is received from the head channel.
+			if lastHead == (common.Hash{}) {
+				lastHead = finalized.BlockHash
+			}
 			f.sink.ForkchoiceUpdatedV1(engine.ForkchoiceStateV1{
 				FinalizedBlockHash: finalized.BlockHash,
-				HeadBlockHash:      headHash,
+				HeadBlockHash:      lastHead,
 			}, nil)
+
 		case <-f.closeCh:
 			return
 		}
