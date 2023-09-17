@@ -66,6 +66,7 @@ func main() {
 
 func relay(c *cli.Context) error {
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(c.Int(verbosityFlag.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
+	//http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	conffile := c.String(configFileFlag.Name)
 	var config lib.Config
 	if data, err := os.ReadFile(conffile); err != nil {

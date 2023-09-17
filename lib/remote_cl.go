@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/ethereum/go-ethereum/beacon/engine"
@@ -56,11 +57,12 @@ func (r *remoteCL) GetFinalizedBlock() (resp engine.ExecutableData, err error) {
 // - "head",
 // - a number
 func (r *remoteCL) GetBlock(specifier string) (resp engine.ExecutableData, err error) {
-	var path = fmt.Sprintf("eth/v2/beacon/blocks/%v", specifier)
-
 	var internal bellatrixBlock
-	url := fmt.Sprintf("%v/%v", r.address, path)
-	req, err := http.NewRequest("GET", url, nil)
+	u, err := url.JoinPath(r.address, "eth", "v2", "beacon", "blocks", specifier)
+	if err != nil {
+		return resp, err
+	}
+	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return resp, err
 	}
