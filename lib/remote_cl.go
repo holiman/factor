@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/beacon/engine"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // remoteCL represents a remote CL client
@@ -45,10 +46,10 @@ func newRemoteCL(address, name string, customHeaders map[string]string) (*remote
 	}, nil
 }
 
-func (r *remoteCL) GetHeadBlock() (resp engine.ExecutableData, err error) {
+func (r *remoteCL) GetHeadBlock() (resp engine.ExecutableData, beaconRoot common.Hash, err error) {
 	return r.GetBlock("head")
 }
-func (r *remoteCL) GetFinalizedBlock() (resp engine.ExecutableData, err error) {
+func (r *remoteCL) GetFinalizedBlock() (resp engine.ExecutableData, beaconRoot common.Hash, err error) {
 	return r.GetBlock("finalized")
 }
 
@@ -56,25 +57,33 @@ func (r *remoteCL) GetFinalizedBlock() (resp engine.ExecutableData, err error) {
 // - "finalized",
 // - "head",
 // - a number
-func (r *remoteCL) GetBlock(specifier string) (resp engine.ExecutableData, err error) {
+func (r *remoteCL) GetBlock(specifier string) (resp engine.ExecutableData, beaconRoot common.Hash, err error) {
 	var internal bellatrixBlock
 	u, err := url.JoinPath(r.address, "eth", "v2", "beacon", "blocks", specifier)
 	if err != nil {
-		return resp, err
+		return resp, common.Hash{}, err
 	}
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
-		return resp, err
+		return resp, common.Hash{}, err
 	}
 	for k, v := range r.customHeaders {
 		req.Header.Set(k, v)
 	}
-	if res, err := r.client.Do(req); err != nil {
-		return resp, err
-	} else if body, err := ioutil.ReadAll(res.Body); err != nil {
-		return resp, err
-	} else if err := json.Unmarshal(body, &internal); err != nil {
-		return resp, fmt.Errorf("response code %v, err: %w", res.StatusCode, err)
+	res, err := r.client.Do(req)
+	if err != nil {
+		return resp, common.Hash{}, err
 	}
-	return internal.Data.Message.Body.ExecutionPayload.toExecutableDataV1(), nil
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return resp, common.Hash{}, err
+	}
+	//fmt.Printf("%v", string(body))
+	err = json.Unmarshal(body, &internal)
+	if err != nil {
+		return resp, common.Hash{}, fmt.Errorf("response code %v, err: %w", res.StatusCode, err)
+	}
+	beaconRoot = internal.Data.Message.ParentRoot
+	resp = internal.Data.Message.Body.ExecutionPayload.toExecutableDataV1()
+	return resp, beaconRoot, nil
 }

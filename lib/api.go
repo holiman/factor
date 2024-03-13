@@ -16,7 +16,10 @@
 
 package lib
 
-import "github.com/ethereum/go-ethereum/beacon/engine"
+import (
+	"github.com/ethereum/go-ethereum/beacon/engine"
+	"github.com/ethereum/go-ethereum/common"
+)
 
 type ElApi interface {
 	// ForkchoiceUpdatedV1 informs the EL about the most recent head.
@@ -26,7 +29,8 @@ type ElApi interface {
 	// GetPayloadV1 returns a cached payload by id.
 	GetPayloadV1(payloadID engine.PayloadID) (*engine.ExecutableData, error)
 	// NewPayloadV3 creates an Eth1 block, inserts it in the chain, and returns the status of the chain.
-	NewPayloadV3(params engine.ExecutableData) (engine.PayloadStatusV1, error)
+	NewPayloadV3(params engine.ExecutableData, versionedHashes []common.Hash, beaconRoot *common.Hash) (engine.PayloadStatusV1, error)
+
 	// Name for the EL, as per configuration.
 	Name() string
 }

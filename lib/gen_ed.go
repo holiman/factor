@@ -32,6 +32,8 @@ func (b beaconBlock) MarshalJSON() ([]byte, error) {
 		BlockHash     common.Hash           `json:"block_hash"     gencodec:"required"`
 		Transactions  []hexutil.Bytes       `json:"transactions"  gencodec:"required"`
 		Withdrawals   []*clWithDrawal       `json:"withdrawals" gencodec:"optional"`
+		BlobGasUsed   math.HexOrDecimal64   `json:"blob_gas_used" gencodec:"optional"`
+		ExcessBlobGas math.HexOrDecimal64   `json:"excess_blob_gas" gencodec:"optional"`
 	}
 	var enc beaconBlock
 	enc.ParentHash = b.ParentHash
@@ -54,6 +56,8 @@ func (b beaconBlock) MarshalJSON() ([]byte, error) {
 		}
 	}
 	enc.Withdrawals = b.Withdrawals
+	enc.BlobGasUsed = math.HexOrDecimal64(b.BlobGasUsed)
+	enc.ExcessBlobGas = math.HexOrDecimal64(b.ExcessBlobGas)
 	return json.Marshal(&enc)
 }
 
@@ -75,6 +79,8 @@ func (b *beaconBlock) UnmarshalJSON(input []byte) error {
 		BlockHash     *common.Hash          `json:"block_hash"     gencodec:"required"`
 		Transactions  []hexutil.Bytes       `json:"transactions"  gencodec:"required"`
 		Withdrawals   []*clWithDrawal       `json:"withdrawals" gencodec:"optional"`
+		BlobGasUsed   *math.HexOrDecimal64  `json:"blob_gas_used" gencodec:"optional"`
+		ExcessBlobGas *math.HexOrDecimal64  `json:"excess_blob_gas" gencodec:"optional"`
 	}
 	var dec beaconBlock
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -139,9 +145,14 @@ func (b *beaconBlock) UnmarshalJSON(input []byte) error {
 	for k, v := range dec.Transactions {
 		b.Transactions[k] = v
 	}
-	b.Withdrawals = make([]*clWithDrawal, len(dec.Withdrawals))
-	for k, v := range dec.Withdrawals {
-		b.Withdrawals[k] = v
+	if dec.Withdrawals != nil {
+		b.Withdrawals = dec.Withdrawals
+	}
+	if dec.BlobGasUsed != nil {
+		b.BlobGasUsed = uint64(*dec.BlobGasUsed)
+	}
+	if dec.ExcessBlobGas != nil {
+		b.ExcessBlobGas = uint64(*dec.ExcessBlobGas)
 	}
 	return nil
 }

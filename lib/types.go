@@ -71,6 +71,9 @@ type beaconBlock struct {
 	BlockHash     common.Hash     `json:"block_hash"     gencodec:"required"`
 	Transactions  [][]byte        `json:"transactions"  gencodec:"required"`
 	Withdrawals   []*clWithDrawal `json:"withdrawals" gencodec:"optional"`
+
+	BlobGasUsed   uint64 `json:"blob_gas_used" gencodec:"optional"`
+	ExcessBlobGas uint64 `json:"excess_blob_gas" gencodec:"optional"`
 }
 
 // JSON type overrides for executableData.
@@ -83,13 +86,16 @@ type beaconBlockMarshaling struct {
 	ExtraData     hexutil.Bytes
 	LogsBloom     hexutil.Bytes
 	Transactions  []hexutil.Bytes
+	BlobGasUsed   math.HexOrDecimal64
+	ExcessBlobGas math.HexOrDecimal64
 }
 
 // cat head.resp | jq ".data .message .body .execution_payload"
 type bellatrixBlock struct {
 	Data struct {
 		Message struct {
-			Body struct {
+			ParentRoot common.Hash `json:"parent_root"`
+			Body       struct {
 				ExecutionPayload beaconBlock `json:"execution_payload"'`
 			} `json:"body"`
 		} `json:"message"`
@@ -125,6 +131,9 @@ func (b beaconBlock) toExecutableDataV1() engine.ExecutableData {
 		BaseFeePerGas: b.BaseFeePerGas,
 		BlockHash:     b.BlockHash,
 		Transactions:  b.Transactions,
+
+		ExcessBlobGas: &b.ExcessBlobGas,
+		BlobGasUsed:   &b.BlobGasUsed,
 	}
 	return resp
 }
