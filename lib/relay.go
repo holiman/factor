@@ -63,21 +63,21 @@ func (r *relayPI) ForkchoiceUpdatedV1(update engine.ForkchoiceStateV1, payloadAt
 	return a, err
 }
 
-func (r *relayPI) NewPayloadV1(params engine.ExecutableData) (engine.PayloadStatusV1, error) {
+func (r *relayPI) NewPayloadV3(params engine.ExecutableData) (engine.PayloadStatusV1, error) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	for _, el := range r.els[1:] {
 		wg.Add(1)
 		go func(el ElApi) {
 			defer wg.Done()
-			if _, err := el.NewPayloadV1(params); err != nil {
-				log.Info("Remote call error", "method", "NPV1", "el", el.Name(), "err", err)
+			if _, err := el.NewPayloadV3(params); err != nil {
+				log.Info("Remote call error", "method", "NPV3", "el", el.Name(), "err", err)
 			}
 		}(el)
 	}
-	a, err := r.els[0].NewPayloadV1(params)
+	a, err := r.els[0].NewPayloadV3(params)
 	if err != nil {
-		log.Info("Remote call error", "method", "NPV1", "el", r.els[0].Name(), "err", err)
+		log.Info("Remote call error", "method", "NPV3", "el", r.els[0].Name(), "err", err)
 	}
 	return a, err
 }

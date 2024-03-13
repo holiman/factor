@@ -78,7 +78,7 @@ func (r *remoteEL) ForkchoiceUpdatedV1(update engine.ForkchoiceStateV1, payloadA
 	return resp, nil
 }
 
-func (r *remoteEL) NewPayloadV1(params engine.ExecutableData) (engine.PayloadStatusV1, error) {
+func (r *remoteEL) NewPayloadV3(params engine.ExecutableData) (engine.PayloadStatusV1, error) {
 	var (
 		raw  json.RawMessage
 		resp engine.PayloadStatusV1
@@ -93,7 +93,7 @@ func (r *remoteEL) NewPayloadV1(params engine.ExecutableData) (engine.PayloadSta
 		// back off a bit
 	}
 	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(contextDeadline))
-	err := r.cli.CallContext(ctx, &raw, "engine_newPayloadV2", params)
+	err := r.cli.CallContext(ctx, &raw, "engine_newPayloadV3", params)
 	if err != nil {
 		r.errCount++
 		return resp, err
