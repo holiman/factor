@@ -17,13 +17,45 @@
 package lib
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
+
+type blockUpdate struct {
+	execData        engine.ExecutableData
+	beaconRoot      common.Hash
+	versionedHashes []common.Hash
+}
+
+func NewBlockUpdate(block engine.ExecutableData, beaconRoot common.Hash) (*blockUpdate, error) {
+	versionedHashes, err := decodeBlobHashes(block.Transactions)
+	if err != nil {
+		return nil, err
+	}
+	return &blockUpdate{
+		execData:        block,
+		beaconRoot:      beaconRoot,
+		versionedHashes: versionedHashes,
+	}, nil
+}
+
+func decodeBlobHashes(enc [][]byte) ([]common.Hash, error) {
+	var blobHashes = make([]common.Hash, 0)
+	for i, encTx := range enc {
+		var tx types.Transaction
+		if err := tx.UnmarshalBinary(encTx); err != nil {
+			return nil, fmt.Errorf("invalid transaction %d: %v", i, err)
+		}
+		blobHashes = append(blobHashes, tx.BlobHashes()...)
+	}
+	return blobHashes, nil
+}
 
 // fetcher fetches data from the remote CL, and feeds it to the EL sink.
 type fetcher struct {
@@ -31,8 +63,8 @@ type fetcher struct {
 	sink    ElApi
 	wg      sync.WaitGroup
 	closeCh chan bool
-	finalCh chan engine.ExecutableData
-	headCh  chan engine.ExecutableData
+	finalCh chan blockUpdate
+	headCh  chan blockUpdate
 }
 
 func NewFetcher(config CLConfig, sink ElApi) (*fetcher, error) {
@@ -44,8 +76,8 @@ func NewFetcher(config CLConfig, sink ElApi) (*fetcher, error) {
 		cl:      cl,
 		sink:    sink,
 		closeCh: make(chan bool),
-		finalCh: make(chan engine.ExecutableData, 10),
-		headCh:  make(chan engine.ExecutableData, 10),
+		finalCh: make(chan blockUpdate, 10),
+		headCh:  make(chan blockUpdate, 10),
 	}, nil
 }
 
@@ -67,13 +99,13 @@ func (f *fetcher) fetchLoop() {
 
 	var (
 		timer = time.NewTimer(10 * time.Second)
-		final engine.ExecutableData
-		head  engine.ExecutableData
+		final *blockUpdate
+		head  *blockUpdate
 	)
 	defer timer.Stop()
 
 	for {
-		if newFinal, err := f.cl.GetFinalizedBlock(); err != nil {
+		if fBlock, fBeaconRoot, err := f.cl.GetFinalizedBlock(); err != nil {
 			log.Error("Failed fetching finalized", "err", err)
 			timer.Reset(30 * time.Second)
 			select {
@@ -81,15 +113,24 @@ func (f *fetcher) fetchLoop() {
 			case <-f.closeCh:
 				return
 			}
-		} else if newFinal.Number != 0 && newFinal.Number != final.Number {
-			final = newFinal // New finalized
-			log.Info("New final block", "number", final.Number, "hash", final.BlockHash)
+		} else if fBlock.Number != 0 && (final == nil || fBlock.Number != final.execData.Number) {
+			update, err := NewBlockUpdate(fBlock, fBeaconRoot)
+			if err != nil {
+				log.Error("Error parsing versioned hashes", "err", err)
+				continue
+			}
+			final = update // New finalized
+			log.Info("New final block",
+				"number", final.execData.Number,
+				"hash", final.execData.BlockHash,
+				"beaconRoot", final.beaconRoot)
+
 			select {
-			case f.finalCh <- final:
+			case f.finalCh <- *final:
 			default:
 			}
 		}
-		if newHead, err := f.cl.GetHeadBlock(); err != nil {
+		if hBlock, hBeaconRoot, err := f.cl.GetHeadBlock(); err != nil {
 			log.Error("Failed fetching head", "err", err)
 			timer.Reset(30 * time.Second)
 			select {
@@ -97,11 +138,19 @@ func (f *fetcher) fetchLoop() {
 			case <-f.closeCh:
 				return
 			}
-		} else if newHead.Number != 0 && newHead.Number != head.Number {
-			head = newHead // New head
-			log.Info("New head block", "number", head.Number, "hash", head.BlockHash)
+		} else if hBlock.Number != 0 && (head == nil || hBlock.Number != head.execData.Number) {
+			update, err := NewBlockUpdate(hBlock, hBeaconRoot)
+			if err != nil {
+				log.Error("Error parsing versioned hashes", "err", err)
+				continue
+			}
+			head = update // New head
+			log.Info("New head block",
+				"number", head.execData.Number,
+				"hash", head.execData.BlockHash,
+				"beaconRoot", head.beaconRoot)
 			select {
-			case f.headCh <- head:
+			case f.headCh <- *head:
 			default:
 			}
 		}
@@ -123,9 +172,10 @@ func (f *fetcher) deliverLoop() {
 	)
 	for {
 		select {
-		case head := <-f.headCh:
+		case headUpdate := <-f.headCh:
+			head := headUpdate.execData
 			lastHead = head.BlockHash
-			f.sink.NewPayloadV1(head)
+			f.sink.NewPayloadV3(head, headUpdate.versionedHashes, &headUpdate.beaconRoot)
 
 			msg := engine.ForkchoiceStateV1{HeadBlockHash: lastHead}
 			if lastFinalized != (common.Hash{}) {
@@ -133,7 +183,8 @@ func (f *fetcher) deliverLoop() {
 			}
 			f.sink.ForkchoiceUpdatedV1(msg, nil)
 
-		case finalized := <-f.finalCh:
+		case finalizedUpdate := <-f.finalCh:
+			finalized := finalizedUpdate.execData
 			lastFinalized = finalized.BlockHash
 
 			// Initialize the head block hash using the finalized hash
