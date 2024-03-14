@@ -18,9 +18,11 @@ package lib
 
 import (
 	"encoding/json"
-	"github.com/ethereum/go-ethereum/common"
 	"os"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/beacon/engine"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 func TestParseHead(t *testing.T) {
@@ -36,5 +38,26 @@ func TestParseHead(t *testing.T) {
 	payload2 := payload.toExecutableDataV1()
 	if have, want := payload2.BlockHash, common.HexToHash("0x1873367cf106a66be0fc94c2165aeebab012dc7e896911b2c0ccfc4eb947e2be"); have != want {
 		t.Fatalf("have %#x, want %#x", have, want)
+	}
+}
+
+func TestParseHeadDencun(t *testing.T) {
+	data, err := os.ReadFile("./testdata/dencun.resp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var block bellatrixBlock
+	if err := json.Unmarshal(data, &block); err != nil {
+		t.Fatal(err)
+	}
+	beaconRoot := block.Data.Message.ParentRoot
+	params := block.Data.Message.Body.ExecutionPayload.toExecutableDataV1()
+	blobhashes, err := decodeBlobHashes(params.Transactions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = engine.ExecutableDataToBlock(params, blobhashes, &beaconRoot)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

@@ -78,12 +78,13 @@ func (r *remoteCL) GetBlock(specifier string) (resp engine.ExecutableData, beaco
 	if err != nil {
 		return resp, common.Hash{}, err
 	}
-	//fmt.Printf("%v", string(body))
+
 	err = json.Unmarshal(body, &internal)
 	if err != nil {
 		return resp, common.Hash{}, fmt.Errorf("response code %v, err: %w", res.StatusCode, err)
 	}
 	beaconRoot = internal.Data.Message.ParentRoot
 	resp = internal.Data.Message.Body.ExecutionPayload.toExecutableDataV1()
+
 	return resp, beaconRoot, nil
 }

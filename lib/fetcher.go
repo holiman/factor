@@ -99,13 +99,13 @@ func (f *fetcher) fetchLoop() {
 
 	var (
 		timer = time.NewTimer(10 * time.Second)
-		final engine.ExecutableData
-		head  engine.ExecutableData
+		final *blockUpdate
+		head  *blockUpdate
 	)
 	defer timer.Stop()
 
 	for {
-		if newFinal, beaconRoot, err := f.cl.GetFinalizedBlock(); err != nil {
+		if fBlock, fBeaconRoot, err := f.cl.GetFinalizedBlock(); err != nil {
 			log.Error("Failed fetching finalized", "err", err)
 			timer.Reset(30 * time.Second)
 			select {
@@ -113,20 +113,24 @@ func (f *fetcher) fetchLoop() {
 			case <-f.closeCh:
 				return
 			}
-		} else if newFinal.Number != 0 && newFinal.Number != final.Number {
-			final = newFinal // New finalized
-			log.Info("New final block", "number", final.Number, "hash", final.BlockHash, "beaconRoot", beaconRoot)
-			update, err := NewBlockUpdate(final, beaconRoot)
+		} else if fBlock.Number != 0 && (final == nil || fBlock.Number != final.execData.Number) {
+			update, err := NewBlockUpdate(fBlock, fBeaconRoot)
 			if err != nil {
 				log.Error("Error parsing versioned hashes", "err", err)
 				continue
 			}
+			final = update // New finalized
+			log.Info("New final block",
+				"number", final.execData.Number,
+				"hash", final.execData.BlockHash,
+				"beaconRoot", final.beaconRoot)
+
 			select {
-			case f.finalCh <- *update:
+			case f.finalCh <- *final:
 			default:
 			}
 		}
-		if newHead, beaconRoot, err := f.cl.GetHeadBlock(); err != nil {
+		if hBlock, hBeaconRoot, err := f.cl.GetHeadBlock(); err != nil {
 			log.Error("Failed fetching head", "err", err)
 			timer.Reset(30 * time.Second)
 			select {
@@ -134,16 +138,19 @@ func (f *fetcher) fetchLoop() {
 			case <-f.closeCh:
 				return
 			}
-		} else if newHead.Number != 0 && newHead.Number != head.Number {
-			head = newHead // New head
-			log.Info("New head block", "number", head.Number, "hash", head.BlockHash, "beaconRoot", beaconRoot)
-			update, err := NewBlockUpdate(final, beaconRoot)
+		} else if hBlock.Number != 0 && (head == nil || hBlock.Number != head.execData.Number) {
+			update, err := NewBlockUpdate(hBlock, hBeaconRoot)
 			if err != nil {
 				log.Error("Error parsing versioned hashes", "err", err)
 				continue
 			}
+			head = update // New head
+			log.Info("New head block",
+				"number", head.execData.Number,
+				"hash", head.execData.BlockHash,
+				"beaconRoot", head.beaconRoot)
 			select {
-			case f.headCh <- *update:
+			case f.headCh <- *head:
 			default:
 			}
 		}
